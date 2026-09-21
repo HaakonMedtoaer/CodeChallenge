@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read Code Trainer</title>
+<meta name="description" content="Practice reading AI-generated code and judging whether it runs and whether it does what was asked.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>Read Code Trainer</h1>
+    </div>
+    <nav class="topbar-actions">
+      <button type="button" id="nav-practice" class="tab is-active">Practice</button>
+      <button type="button" id="nav-progress" class="tab">Progress</button>
+      <span id="sync-badge" class="badge badge-local" title="Where progress is being stored">local</span>
+      <button type="button" id="theme-toggle" class="icon-btn" title="Switch between light and dark" aria-label="Switch theme">&#9681;</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================ PRACTICE ============================ -->
+<section id="view-practice">
+
+  <div class="controls">
+    <div class="control">
+      <label for="tier-select">Tier</label>
+      <select id="tier-select"></select>
+    </div>
+    <div class="control">
+      <label for="mode-select">Session</label>
+      <select id="mode-select">
+        <option value="practice">Practice — anything new</option>
+        <option value="review">Review — weight my weak spots</option>
+      </select>
+    </div>
+    <div class="control control-grow">
+      <span class="tier-blurb" id="tier-blurb"></span>
+    </div>
+    <button type="button" id="skip-btn" class="ghost-btn">Skip this one</button>
+  </div>
+
+  <div id="empty-pool" class="notice" hidden>
+    <strong>You have worked through every exercise in this tier.</strong>
+    <p>Repeats are still useful, and this will keep serving them. When you want fresh
+    material, open the repo in Claude Code and ask for another batch — the
+    <code>Progress</code> tab shows which patterns to weight it toward.</p>
+  </div>
+
+  <div class="workspace">
+
+    <!-- left: the code under review -->
+    <div class="pane pane-code">
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">An agent just built this for you</span>
+          <span class="ex-id" id="ex-id"></span>
+        </div>
+        <p class="scenario" id="ex-scenario"></p>
+        <div class="ask-box">
+          <span class="ask-label">What it was asked to do</span>
+          <p id="ex-ask"></p>
+        </div>
+        <pre class="code"><code id="ex-code"></code></pre>
+      </div>
+    </div>
+
+    <!-- right: your call, then the key -->
+    <div class="pane pane-answer">
+
+      <div class="card" id="answer-card">
+        <h2>Your call</h2>
+        <p class="hint">Write it out before you reveal anything. The writing is the exercise — a
+        verdict you have not had to justify in words is a guess with good posture.</p>
+
+        <label class="field-label" for="notes">What does this do, step by step? Where does it break, and what does not match the ask?</label>
+        <textarea id="notes" rows="9" placeholder="Trace it line by line. Say what each line does, what the values are, and what happens when they meet."></textarea>
+
+        <fieldset class="verdict">
+          <legend>Will it run?</legend>
+          <label><input type="radio" name="runtime" value="clean"> <span>Runs to completion</span></label>
+          <label><input type="radio" name="runtime" value="crash"> <span>Raises and halts</span></label>
+        </fieldset>
+
+        <fieldset class="verdict">
+          <legend>Does it do what was asked?</legend>
+          <label><input type="radio" name="logic" value="match"> <span>Matches the ask</span></label>
+          <label><input type="radio" name="logic" value="mismatch"> <span>Invented, missing or wrong</span></label>
+        </fieldset>
+
+        <button type="button" id="reveal-btn" class="primary-btn" disabled>Reveal the answer key</button>
+        <p class="hint" id="reveal-hint">Pick both verdicts to continue.</p>
+      </div>
+
+      <div class="card" id="key-card" hidden>
+        <h2>Answer key</h2>
+
+        <div class="scorecards">
+          <div class="scorecard" id="score-runtime">
+            <span class="scorecard-label">Runtime call</span>
+            <span class="scorecard-mark"></span>
+            <span class="scorecard-detail"></span>
+          </div>
+          <div class="scorecard" id="score-logic">
+            <span class="scorecard-label">Logic call</span>
+            <span class="scorecard-mark"></span>
+            <span class="scorecard-detail"></span>
+          </div>
+        </div>
+
+        <h3>What actually happens</h3>
+        <ol class="trace" id="key-trace"></ol>
+
+        <h3>Runtime verdict</h3>
+        <p id="key-runtime"></p>
+
+        <h3>Against the ask</h3>
+        <p id="key-logic"></p>
+
+        <div id="bugs-block">
+          <h3>Defects in this snippet</h3>
+          <p class="hint">Tick the ones you named in your notes. Be strict with yourself — this
+          is what steers your review sessions, and flattering it only wastes your own time.</p>
+          <ul class="bugs" id="key-bugs"></ul>
+        </div>
+
+        <div class="stakes">
+          <span class="stakes-label">Why this matters</span>
+          <p id="key-stakes"></p>
+        </div>
+
+        <div class="runner">
+          <button type="button" id="run-btn" class="ghost-btn">Run it and see</button>
+          <span class="runner-status" id="run-status"></span>
+          <pre class="output" id="run-output" hidden></pre>
+        </div>
+
+        <button type="button" id="next-btn" class="primary-btn">Log it and continue</button>
+      </div>
+
+      <div class="card" id="done-card" hidden>
+        <h2>Tier cleared</h2>
+        <p id="done-text"></p>
+        <button type="button" id="advance-btn" class="primary-btn">Move up a tier</button>
+        <button type="button" id="stay-btn" class="ghost-btn">Stay here a while longer</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PROGRESS ============================ -->
+<section id="view-progress" hidden>
+
+  <div class="card">
+    <h2>Where you are</h2>
+    <p class="hint">Runtime and logic are scored separately on purpose. They are different
+    instincts, they fail differently, and an average would hide exactly the gap
+    you most need to see.</p>
+    <table class="tiers" id="tier-table">
+      <thead>
+        <tr>
+          <th>Tier</th><th>What it trains</th><th>Attempts</th>
+          <th>Runtime</th><th>Logic</th><th>Last <span id="rolling-n"></span></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Patterns you keep missing</h2>
+    <p class="hint">Counted only from exercises you have actually attempted. Review sessions
+    weight themselves toward whatever sits at the top of this list.</p>
+    <div id="weak-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Sync across devices</h2>
+    <p class="hint">Progress always lives in this browser. Turning on sync also writes it to a
+    file in a GitHub repo, so the same history follows you between machines.</p>
+
+    <div id="sync-state" class="sync-state"></div>
+
+    <details id="sync-setup">
+      <summary>Set up GitHub sync</summary>
+      <div class="form">
+        <p class="hint">
+          Create a <strong>fine-grained</strong> personal access token at
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">github.com/settings/personal-access-tokens</a>,
+          scoped to <em>only</em> this one repository, with <strong>Contents: read and write</strong>
+          and nothing else. The token is kept in this browser's local storage and sent
+          only to api.github.com.
+        </p>
+        <p class="hint warn">
+          If the repository is public, so is the progress file. It holds exercise ids,
+          timestamps and right/wrong marks — nothing sensitive — but if you would rather it
+          were private, point the path below at a separate private repo.
+        </p>
+        <label class="field-label" for="sync-owner">GitHub user or org</label>
+        <input id="sync-owner" type="text" autocomplete="off" spellcheck="false" placeholder="your-username">
+        <label class="field-label" for="sync-repo">Repository</label>
+        <input id="sync-repo" type="text" autocomplete="off" spellcheck="false" placeholder="read-code-trainer">
+        <label class="field-label" for="sync-branch">Branch</label>
+        <input id="sync-branch" type="text" autocomplete="off" spellcheck="false" value="main">
+        <label class="field-label" for="sync-path">File path in the repo</label>
+        <input id="sync-path" type="text" autocomplete="off" spellcheck="false" value="progress.json">
+        <label class="field-label" for="sync-token">Access token</label>
+        <input id="sync-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+        <div class="form-actions">
+          <button type="button" id="sync-save" class="primary-btn">Save and sync now</button>
+          <button type="button" id="sync-clear" class="ghost-btn">Turn sync off</button>
+        </div>
+        <p class="form-msg" id="sync-msg"></p>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Move progress by hand</h2>
+    <p class="hint">Works with or without sync. Importing merges rather than overwrites, so
+    nothing you have already done is lost.</p>
+    <div class="form-actions">
+      <button type="button" id="export-btn" class="ghost-btn">Export to a file</button>
+      <button type="button" id="import-btn" class="ghost-btn">Import a file</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <button type="button" id="reset-btn" class="danger-btn">Erase all progress</button>
+    </div>
+    <p class="form-msg" id="transfer-msg"></p>
+  </div>
+
+</section>
+
+</main>
+
+<footer class="footer">
+  <span id="footer-count"></span>
+  <span class="dot">·</span>
+  <span>Runtime and logic scored separately</span>
+  <span class="dot">·</span>
+  <span>Progress never leaves your browser unless you turn sync on</span>
+</footer>
+
+<script src="data/patterns.js"></script>
+<script src="data/tier1.js"></script>
+<script src="data/tier2.js"></script>
+<script src="data/tier3.js"></script>
+<script src="data/tier4.js"></script>
+<script src="data/tier5.js"></script>
+<script src="js/store.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/runner.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

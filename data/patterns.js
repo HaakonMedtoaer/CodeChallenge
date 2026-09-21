@@ -1,0 +1,41 @@
+// Bug pattern library. Every exercise tags the patterns it uses so progress
+// tracking can tell you *which* instincts are weak, not just that you missed one.
+window.PATTERNS = {
+  // --- runtime ---
+  "mutable-default-arg": { kind: "runtime", label: "Mutable default argument",
+    hint: "A list or dict as a default parameter is created once and shared across every call." },
+  "none-vs-zero": { kind: "runtime", label: "None vs. 0 vs. empty",
+    hint: "Missing, zero and empty are three different things. `or` and truthiness collapse them." },
+  "off-by-one": { kind: "both", label: "Off-by-one",
+    hint: "Check the last iteration and the last index, every time. Sometimes it raises; sometimes it just quietly returns the wrong slice." },
+  "wrong-variable": { kind: "both", label: "Wrong variable referenced",
+    hint: "Shadowing, near-miss names, and loop variables that clobber a parameter. It crashes only if the wrong name happens not to exist." },
+  "type-mismatch": { kind: "runtime", label: "Type mismatch",
+    hint: "Values arriving from JSON, CSV or a form are often strings that look like numbers." },
+  "missing-none-check": { kind: "runtime", label: "Missing None / key check",
+    hint: "An operation that requires a value, reached by a path where the value can be absent." },
+  "mutate-while-iterating": { kind: "runtime", label: "Mutating a list while iterating it",
+    hint: "Removing items shifts every later index under the loop's feet." },
+
+  // --- logic / process integrity ---
+  "invented-rule": { kind: "logic", label: "Invented business rule",
+    hint: "A fee, discount, cap or default that appears in the code but not in the ask." },
+  "premature-side-effect": { kind: "logic", label: "Side effect before commit",
+    hint: "Email, SMS, webhook or log fires before the state that makes it true is durable." },
+  "no-rollback": { kind: "logic", label: "No rollback on partial failure",
+    hint: "Step 2 fails, step 1 already happened, and nothing puts it back." },
+  "wrong-order": { kind: "logic", label: "Wrong order of operations",
+    hint: "Validation, authorisation or capacity checks running after the thing they guard." },
+  "swallowed-error": { kind: "logic", label: "Silently swallowed error",
+    hint: "A bare `except`, an ignored return value, a failure that looks like success." },
+  "missing-edge-case": { kind: "logic", label: "Missing edge case from the spec",
+    hint: "Boundaries (> vs >=), empty inputs, the status nobody thought about." },
+  "overbroad-output": { kind: "logic", label: "Returns more than it should",
+    hint: "A denylist where the spec implies an allowlist. New fields leak by default." },
+  "not-idempotent": { kind: "logic", label: "Not idempotent",
+    hint: "Running it twice does the thing twice. Retries and double-clicks are normal." },
+  "race-condition": { kind: "logic", label: "Race condition",
+    hint: "Read, decide, then write — with a gap in the middle that another caller can enter." },
+  "precedence": { kind: "logic", label: "Boolean / operator precedence",
+    hint: "`and` binds tighter than `or`. The condition you read is not the condition that runs." },
+};

@@ -1,0 +1,5 @@
+# Progress synced from the app lands here when sync is on; it is yours, and it
+# is committed on purpose. Nothing else in this project generates files.
+.DS_Store
+Thumbs.db
+node_modules/
